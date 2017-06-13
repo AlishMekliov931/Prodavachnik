@@ -1,4 +1,9 @@
 function startApp() {
+
+    if (sessionStorage.getItem('authToken') !== null) {
+        let username = sessionStorage.getItem('username');
+        $('#loggedInUser').text("Welcome, " + username + "!");
+    }
     showHideMenuLinks();
     showHomeView();
 
@@ -33,12 +38,14 @@ function startApp() {
             $("#linkRegister").show();
             $("#linkListAds").hide();
             $("#linkLogout").hide();
+            $("#loggedInUser").hide();
         } else {
             // We have logged in user
             $("#linkLogin").hide();
             $("#linkRegister").hide();
             $("#linkListAds").show();
             $("#linkLogout").show();
+            $("#loggedInUser").show();
         }
     }
 
@@ -88,6 +95,9 @@ function startApp() {
         sessionStorage.setItem('authToken', userAuth);
         let userId = userInfo._id;
         sessionStorage.setItem('userId', userId);
+        let username = userInfo.username;
+        sessionStorage.setItem('username', username);
+        $('#loggedInUser').text("Welcome, " + username + "!");
     }
 
     // user/register
