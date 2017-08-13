@@ -1,389 +1,386 @@
 function startApp() {
+    // Config
+    const appKey = 'kid_Hk4SphWPW';
+    const appSecret = '79d2e076e0f74ebbb708f37cda5868cc';
+    const baseUrl = 'https://baas.kinvey.com';
 
-    if (sessionStorage.getItem('authToken') !== null) {
-        let username = sessionStorage.getItem('username');
-        $('#loggedInUser').text("Welcome, " + username + "!");
-    }
-    showHideMenuLinks();
-    showHomeView();
+    // Process
+    homeView();
 
-
-    // Bind the navigation menu links
-    $("#linkHome").click(showHomeView);
-    $("#linkLogin").click(showLoginView);
-    $("#linkRegister").click(showRegisterView);
-    $("#linkListAds").click(listAdverts);
-    $("#linkCreateAd").click(showCreateAdView);
-    $("#linkLogout").click(logoutUser);
-
-    // Bind the form submit buttons
-    $("#buttonLoginUser").click(loginUser);
-    $("#buttonRegisterUser").click(registerUser);
-    $("#buttonCreateAd").click(createAdvert);
-    $("#buttonEditAd").click(editAdvert);
-
-
-    // Bind the info / error boxes
-    $("#infoBox, #errorBox").click(function() {
-        $(this).fadeOut();
-    });
-
-    // Attach AJAX "loading" event listener
+    /**
+     * Bind events
+     */
     $(document).on({
-        ajaxStart: function() { $("#loadingBox").show() },
-        ajaxStop: function() { $("#loadingBox").hide() }
+        ajaxStart: function () {
+            $("#loadingBox").show();
+            $("button, input[type='button']").prop('disabled', true);
+        },
+        ajaxStop: function () {
+            $("#loadingBox").hide();
+            $("button, input[type='button']").prop('disabled', false);
+        }
     });
 
+    $("#loadingBox, #infoBox, #errorBox").click(function () {
+        $(this).hide();
+    });
 
-    const kinveyBaseUrl = "https://mock.api.com/";
-    const kinveyAppKey = "kid_rk";
-    const kinveyAppSecret = "736804a668";
+    $("#linkHome").click(homeView);
+    $("#linkLogin").click(loginView);
+    $("#linkRegister").click(registrationView);
+    $("#linkLogout").click(logout);
+    $("#linkListAds").click(listAdsView);
+    $("#linkCreateAd").click(createAdView);
+
+    $("#viewCreateAd").find('#buttonCreateAd').click(createAd);
+    $("#viewRegister").find('#buttonRegisterUser').click(register);
+    $("#viewLogin").find('#buttonLoginUser').click(login);
 
 
-    function showView(viewName) {
-        // Hide all views and show the selected view only
-        $('main > section').hide();
-        $('#' + viewName).show();
+    function homeView() {
+        showView("viewHome");
     }
 
-    function showHideMenuLinks() {
-        $("#linkHome").show();
-        if (sessionStorage.getItem('authToken') === null) {
-            // No logged in user
-            $("#linkLogin").show();
-            $("#linkRegister").show();
-            $("#linkListAds").hide();
-            $("#linkCreateAd").hide();
-            $("#linkLogout").hide();
-            $("#loggedInUser").hide();
-        } else {
-            // We have logged in user
-            $("#linkLogin").hide();
-            $("#linkRegister").hide();
-            $("#linkListAds").show();
-            $("#linkCreateAd").show();
-            $("#linkLogout").show();
-            $("#loggedInUser").show();
-        }
-    }
-
-    function showInfo(message) {
-        $('#infoBox').text(message);
-        $('#infoBox').show();
-        setTimeout(function() {
-            $('#infoBox').fadeOut();
-        }, 3000);
-    }
-
-    function showError(errorMsg) {
-        $('#errorBox').text("Error: " + errorMsg);
-        $('#errorBox').show();
-    }
-
-    function handleAjaxError(response) {
-        let errorMsg = JSON.stringify(response);
-        if (response.readyState === 0)
-            errorMsg = "Cannot connect due to network error.";
-        if (response.responseJSON && response.responseJSON.description)
-            errorMsg = response.responseJSON.description;
-        showError(errorMsg);
-    }
-
-
-    function showHomeView() {
-        showView('viewHome');
-    }
-
-    function showLoginView() {
-        showView('viewLogin');
+    function loginView() {
         $('#formLogin').trigger('reset');
+        showView("viewLogin");
     }
 
-    function showRegisterView() {
+    function registrationView() {
         $('#formRegister').trigger('reset');
-        showView('viewRegister');
+        showView("viewRegister");
     }
-    function showCreateAdView() {
+
+    function listAdsView() {
+        showView('viewAds');
+        listAds();
+    }
+
+    function createAdView() {
         $('#formCreateAd').trigger('reset');
         showView('viewCreateAd');
     }
 
+    function editAdView() {
+        showView('viewEditAd');
+    }
 
-    // user/login
-    function loginUser() {
-        const kinveyLoginUrl = kinveyBaseUrl + "user/" + kinveyAppKey + "/login";
-        const kinveyAuthHeaders = {
-            'Authorization': "Basic " + btoa(kinveyAppKey + ":" + kinveyAppSecret),
-        };
-        let userData = {
-            username: $('#formLogin input[name=username]').val(),
-            password: $('#formLogin input[name=passwd]').val()
-        };
-
-        $.ajax({
-            method: "POST",
-            url: kinveyLoginUrl,
-            headers: kinveyAuthHeaders,
-            data: userData,
-            success: loginSuccess,
-            error: handleAjaxError
-        });
-
-        function loginSuccess(userInfo) {
-            saveAuthInSession(userInfo);
-            showHideMenuLinks();
-            showHomeView();
-            listAdverts();
-            showInfo('Login successful.');
+    function hideLinkHeader() {
+        $("#linkHome").show();
+        $("#menu").find("#linkHome").show();
+        if (sessionStorage.getItem('authToken')) {
+            $("#linkLogout").show();
+            $("#linkListAds").show();
+            $("#linkCreateAd").show();
+            $("#linkLogin").hide();
+            $("#linkRegister").hide();
+        } else {
+            $("#linkLogout").hide();
+            $("#linkListAds").hide();
+            $("#linkCreateAd").hide();
+            $("#linkLogin").show();
+            $("#linkRegister").show();
         }
     }
 
-    function saveAuthInSession(userInfo) {
-        let userAuth = userInfo._kmd.authtoken;
-        sessionStorage.setItem('authToken', userAuth);
-        let userId = userInfo._id;
-        sessionStorage.setItem('userId', userId);
-        let username = userInfo.username;
-        sessionStorage.setItem('username', username);
-        $('#loggedInUser').text("Welcome, " + username + "!");
+    function showView(view) {
+        setGreeting();
+        hideLinkHeader();
+        $("main > section").hide();
+        $("#" + view).show();
     }
 
-    // user/register
-    function registerUser() {
-        const kinveyRegisterUrl = kinveyBaseUrl + "user/" + kinveyAppKey + "/";
-        const kinveyAuthHeaders = {
-            'Authorization': "Basic " + btoa(kinveyAppKey + ":" + kinveyAppSecret),
-        };
 
-        let userData = {
-            username: $('#formRegister input[name=username]').val(),
-            password: $('#formRegister input[name=passwd]').val()
-        };
+    function saveSessionStorage(data) {
+        sessionStorage.setItem('userName', data.username);
+        sessionStorage.setItem('userId', data._id);
+        sessionStorage.setItem('authToken', data._kmd.authtoken);
+    }
 
-        $.ajax({
-            method: "POST",
-            url: kinveyRegisterUrl,
-            headers: kinveyAuthHeaders,
-            data: userData,
-            success: registerSuccess,
-            error: handleAjaxError
-        });
+    function readMoreView(ad) {
+        showView('viewReadMore');
+        readMore(ad);
+        function readMore(ad) {
+            $('#viewReadMore').find('.readMore').text('');
 
-        function registerSuccess(userInfo) {
-            console.log(userInfo);
-            saveAuthInSession(userInfo);
-            showHideMenuLinks();
-            showHomeView();
-            listAdverts();
-            showInfo('User registration successful.');
+            $(".imgContent").append(`<img src="${ad.img}">`);
+            $("#readMoreTitle").text(ad.title);
+            $("#readMoreDescription").text(ad.description);
+            $("#readMorePublisher").text(ad.publisher);
+            $("#readMoreDate").text(ad.date);
         }
     }
 
-    // user/logout
-    function logoutUser() {
-        sessionStorage.clear();
-        $('#loggedInUser').text("");
-        showHideMenuLinks();
-        showHomeView();
-        showInfo('Logout successful.');
-    }
+    function listAds() {
+        let contentTable = $("#ads");
+        contentTable.text("");
 
-    // advertisement/all
-    function listAdverts() {
-        $('#ads').empty();
-        showView('viewAds');
-
-        const kinveyAdvertsUrl = kinveyBaseUrl + "appdata/" + kinveyAppKey + "/adverts";
-        const kinveyAuthHeaders = {
-            'Authorization': "Kinvey " + sessionStorage.getItem('authToken'),
-        };
         $.ajax({
-            method: "GET",
-            url: kinveyAdvertsUrl,
-            headers: kinveyAuthHeaders,
-            success: loadAdvertsSuccess,
-            error: handleAjaxError
+            url: baseUrl + '/appdata/' + appKey + '/prodavachnik/',
+            method: 'GET',
+            headers: {
+                'Authorization': 'Kinvey ' + sessionStorage.getItem('authToken'),
+            },
+            success: successListAds,
+            error: handleError
         });
 
-        function loadAdvertsSuccess(adverts) {
-            showInfo('Advertisements loaded.');
-            if (adverts.length === 0) {
-                $('#ads').text('No advertisements available.');
-            } else {
-                let advertsTable = $('<table>')
-                    .append($('<tr>').append(
-                        '<th>Title</th>',
-                        '<th>Description</th>',
-                        '<th>Publisher</th>',
-                        '<th>Date Published</th>',
-                        '<th>Price</th>',
-                        '<th>Actions</th>')
-                    );
+        function successListAds(data) {
+            contentTable.text("");
+            let table = $('<table>').append(` <tr>
+                    <th>Title</th>
+                    <th>Publisher</th>
+                    <th>Description</th>
+                    <th>Price</th>
+                    <th>Date Published</th>
+                    <th>Actions</th>
+                </tr>`);
+            for (let ad of data) {
+                let buttons = [];
+                let readMore = $("<button>Read More</button>")
+                    .click(() => readMoreView(ad));
+                buttons.push(readMore);
+                if (ad._acl.creator === sessionStorage.getItem('userId')) {
+                    let del = $("<button>&#x2718;</button>").click(() => deleteAd(ad));
+                    let edit = $("<button>&#9998;</button>").click(() => makeEditAdView(ad));
 
-                for (let advert of adverts) {
-                    let readMoreLink = $(`<a data-id="${advert._id}" href="#">[Read More]</a>`)
-                        .click(function() { displayAdvert($(this).attr("data-id")) });
-
-
-                    advertsTable.append($('<tr>').append(
-                        $('<td>').text(advert.title),
-                        $('<td>').text(advert.description),
-                        $('<td>').text(advert.publisher),
-                        $('<td>').text(advert.datePublished),
-                        $('<td>').text(advert.price),
-                        //$('<td>').append(links),
-                        $('<td>').append(readMoreLink)
-                    ));
+                    buttons.push(" ", del, " ", edit);
                 }
-                $('#ads').append(advertsTable);
+                let tr = $('<tr>')
+                    .append($(`<td>${ad.title}</td>`))
+                    .append($(`<td>${ad.publisher}</td>`))
+                    .append($(`<td>${ad.description}</td>`))
+                    .append($(`<td>${Number(ad.price).toFixed(2)}</td>`))
+                    .append($(`<td>${ad.date}</td>`))
+                    .append($(`<td>`).append(buttons));
+                table.append(tr);
             }
-        }
-    }
-    function displayAdvert(advertId){
-        const kinveyAdvertUrl = kinveyBaseUrl + "appdata/" +
-            kinveyAppKey + "/adverts/" + advertId;
-        const kinveyAuthHeaders = {
-            'Authorization': "Kinvey " + sessionStorage.getItem('authToken'),
-        };
-
-        $.ajax({
-            method: "GET",
-            url: kinveyAdvertUrl,
-            headers: kinveyAuthHeaders,
-            success: displayAdvertSuccess
-        });
-
-        $('#viewDetailsAd').empty();
-
-        function displayAdvertSuccess(advert) {
-            let advertInfo = $('<div>').append(
-                $('<img>').attr("src", advert.image),
-                $('<br>'),
-                $('<label>').text('Title:'),
-                $('<h1>').text(advert.title),
-                $('<label>').text('Description:'),
-                $('<p>').text(advert.description),
-                $('<label>').text('Publisher:'),
-                $('<div>').text(advert.publisher),
-                $('<label>').text('Date:'),
-                $('<div>').text(advert.datePublished));
-
-            $('#viewDetailsAd').append(advertInfo);
-
-            showView('viewDetailsAd');
+            contentTable.append(table);
         }
     }
 
-
-    // advertisement/create
-    function createAdvert() {
-        const kinveyAuthHeaders = {
-            'Authorization': "Kinvey " + sessionStorage.getItem('authToken'),
-        };
-
-        const kinveyUserUrl =
-            `${kinveyBaseUrl}user/${kinveyAppKey}/${sessionStorage.getItem('userId')}`;
+    function deleteAd(ad) {
 
         $.ajax({
-            method: "GET",
-            url: kinveyUserUrl,
-            headers: kinveyAuthHeaders,
-            success: afterPublisherRequest
+            url: baseUrl + '/appdata/' + appKey + '/prodavachnik/' + ad._id,
+            method: 'DELETE',
+            headers: {
+                'Authorization': 'Kinvey ' + sessionStorage.getItem('authToken'),
+                'Content-Type': 'application/json'
+            },
+            success: successDeleteAd,
+            error: handleError
+        });
+        function successDeleteAd() {
+            listAdsView();
+            showInfo("Deleted ad success!");
+        }
+    }
+
+    function createAd() {
+        let createForm = $("#formCreateAd");
+        let date = ( "0" + parseInt(new Date().getMonth() + 1)).slice(-2) + "/"
+            + ("0" + new Date().getDate()).slice(-2) + "/" + new Date().getFullYear();
+        let publisher = sessionStorage.getItem('userName');
+        let description = createForm.find('[name="description"]').val();
+        let title = createForm.find('[name="title"]').val();
+        let img = createForm.find('[name="image"]').val();
+        let price = createForm.find('[name="price"]').val();
+
+        let curAd = {
+            title,
+            publisher,
+            description,
+            img,
+            price,
+            date
+        };
+
+        if (title.length == 0) {
+            showError("Title cannot be empty!");
+            return;
+        }
+        if (price.length == 0) {
+            showError("Price cannot be empty!");
+            return;
+        }
+
+        $.ajax({
+            url: baseUrl + '/appdata/' + appKey + "/prodavachnik",
+            method: 'POST',
+            headers: {
+                'Authorization': 'Kinvey ' + sessionStorage.getItem('authToken'),
+                'Content-Type': 'application/json'
+            },
+            data: JSON.stringify(curAd),
+            success: successCreateAd,
+            error: handleError
+        });
+        function successCreateAd() {
+            listAdsView();
+            showInfo('Success created ad!');
+        }
+    }
+
+    function editAd(id, date, userName) {
+        let editForm = $("#formEditAd");
+        let publisher = userName;
+        let description = editForm.find('[name="description"]').val();
+        let title = editForm.find('[name="title"]').val();
+        let img = editForm.find('[name="image"]').val();
+        let price = editForm.find('[name="price"]').val();
+
+        let curAd = {
+            title,
+            publisher,
+            description,
+            img,
+            price,
+            date
+        };
+        if (title.length == 0) {
+            showError("Title cannot be empty!");
+            return;
+        }
+        if (price.length == 0) {
+            showError("Price cannot be empty!");
+            return;
+        }
+        $.ajax({
+            method: 'PUT',
+            url: baseUrl + '/appdata/' + appKey + "/prodavachnik/" + id,
+            headers: {
+                'Authorization': 'Kinvey ' + sessionStorage.getItem('authToken'),
+                'Content-Type': 'application/json'
+            },
+            data: JSON.stringify(curAd),
+            success: successEditAd,
+            error: handleError
+        });
+        function successEditAd() {
+            listAdsView();
+            showInfo('Success edit ad!');
+        }
+    }
+
+    function login() {
+        let formLogin = $("#formLogin");
+        let username = formLogin.find(`input[name="username"]`).val();
+        let password = formLogin.find(`input[name="passwd"]`).val();
+
+        $.ajax({
+            url: baseUrl + "/user/" + appKey + "/login",
+            method: "POST",
+            headers: {
+                'Authorization': 'Basic ' + btoa(appKey + ":" + appSecret),
+                'Content-Type': 'application/json'
+            },
+            data: JSON.stringify({username, password}),
+            success: successLogin,
+            error: handleError
         });
 
-        function afterPublisherRequest(publisher) {
-            let advertData = {
-                title: $('#formCreateAd input[name=title]').val(),
-                publisher: publisher.username,
-                datePublished: $('#formCreateAd input[name=datePublished]').val(),
-                price: Number($('#formCreateAd input[name=price]').val())
-            };
+        function successLogin(data) {
+            saveSessionStorage(data);
+            listAdsView();
+            showInfo("Login success!");
+        }
+    }
 
-            const kinveyAdvertsUrl = kinveyBaseUrl + "appdata/" + kinveyAppKey + "/adverts";
+    function logout() {
+        $.ajax({
+            url: baseUrl + '/user/' + appKey + "/_logout",
+            method: 'POST',
+            headers: {
+                'Authorization': 'Kinvey ' + sessionStorage.getItem('authToken'),
+                'Content-Type': 'application/json'
+            },
+            success: successLogout,
+            error: handleError
+        });
+
+        function successLogout(a) {
+            sessionStorage.clear();
+            homeView();
+            showInfo("Logout success!");
+        }
+    }
+
+    function register() {
+        let formLogin = $("#formRegister");
+        let username = formLogin.find(`input[name="username"]`).val();
+        let password = formLogin.find(`input[name="passwd"]`).val();
+
+        if (username.length == 0) {
+            showError("Username cannot be empty!");
+            return;
+        }
+        if (password.length == 0) {
+            showError("Password cannot be empty!");
+            return;
+        } else {
             $.ajax({
+                url: baseUrl + "/user/" + appKey,
                 method: "POST",
-                url: kinveyAdvertsUrl,
-                headers: kinveyAuthHeaders,
-                data: advertData,
-                success: createAdvertSuccess
+                headers: {
+                    'Authorization': 'Basic ' + btoa(appKey + ":" + appSecret),
+                    'Content-Type': 'application/json'
+                },
+                data: JSON.stringify({username, password}),
+                success: successRegistration,
+                error: handleError
             });
+        }
 
-            function createAdvertSuccess(response) {
-                listAdverts();
-            }
+
+        function successRegistration(data) {
+            saveSessionStorage(data);
+            listAdsView();
+            showInfo("Registration success!");
         }
     }
 
-    // advertisement/delete
-    function deleteAdvert(advertId) {
-        const kinveyBookUrl = kinveyBaseUrl + "appdata/" +
-            kinveyAppKey + "/adverts/" + advertId;
-        const kinveyAuthHeaders = {
-            'Authorization': "Kinvey " + sessionStorage.getItem('authToken'),
-        };
+    function makeEditAdView(ad) {
+        editAdView();
+        let date = ad.date;
+        let id = ad._id;
+        let userName = ad.publisher;
+        let editForm = $('#formEditAd');
+        editForm.find('input[name=title]').val(ad.title);
+        editForm.find('textarea[name=description]').val(ad.description);
+        editForm.find('input[name=image]').val(ad.img);
+        editForm.find('input[name=price]').val(ad.price);
+        $("#buttonEditAd").click(() => editAd(id, date, userName));
+    }
 
-        $.ajax({
-            method: "DELETE",
-            url: kinveyBookUrl,
-            headers: kinveyAuthHeaders,
-            success: deleteBookSuccess
-        });
 
-        function deleteBookSuccess(response) {
-            listAdverts();
+    function setGreeting() {
+        if (sessionStorage.getItem('authToken')) {
+            $("#menu #loggedInUser").text(`Welcome, ${sessionStorage.getItem('userName')}!`).show();
+        } else {
+            $("#menu #loggedInUser").text(``).hide();
         }
     }
 
-    // advertisement/edit GET
-    function loadAdvertForEdit(advertId) {
-        const kinveyBookUrl = kinveyBaseUrl + "appdata/" +
-            kinveyAppKey + "/adverts/" + advertId;
-        const kinveyAuthHeaders = {
-            'Authorization': "Kinvey " + sessionStorage.getItem('authToken'),
-        };
-
-        $.ajax({
-            method: "GET",
-            url: kinveyBookUrl,
-            headers: kinveyAuthHeaders,
-            success: loadAdvertForEditSuccess
-        });
-
-        function loadAdvertForEditSuccess(advert) {
-            $('#formEditAd input[name=id]').val(advert._id);
-            $('#formEditAd input[name=title]').val(advert.title);
-            $('#formEditAd input[name=publisher]').val(advert.publisher);
-            $('#formEditAd input[name=datePublished]').val(advert.datePublished);
-            $('#formEditAd input[name=price]').val(advert.price);
-            showView('viewEditAd');
-        }
+    function handleError(response) {
+        let errorMsg = JSON.stringify(response);
+        if (response.readyState === 0)
+            errorMsg = "Cannot connect due to network error.";
+        if (response.responseJSON &&
+            response.responseJSON.description)
+            errorMsg = response.responseJSON.description;
+        showError(errorMsg);
     }
 
-    // advertisement/edit POST
-    function editAdvert() {
-        const kinveyAdvertUrl =  kinveyBaseUrl + "appdata/" + kinveyAppKey +
-            "/adverts/" + $('#formEditAd input[name=id]').val();
-        const kinveyAuthHeaders = {
-            'Authorization': "Kinvey " + sessionStorage.getItem('authToken'),
-        };
+    function showInfo(message) {
+        $('#infoBox').text(message).fadeIn(500);
+        setTimeout(function () {
+            $('#infoBox').fadeOut();
+        }, 2000);
+    }
 
-        let advertData = {
-            title: $('#formEditAd input[name=title]').val(),
-            publisher: $('#formEditAd input[name=publisher]').val(),
-            datePublished: $('#formEditAd input[name=datePublished]').val(),
-            price: $('#formEditAd input[name=price]').val()
-        };
-
-        $.ajax({
-            method: "PUT",
-            url: kinveyAdvertUrl,
-            headers: kinveyAuthHeaders,
-            data: advertData,
-            success: editAdvertSuccess
-        });
-
-        function editAdvertSuccess(response) {
-            listAdverts();
-        }
+    function showError(message) {
+        $('#errorBox').text(message);
+        $('#errorBox').show();
     }
 }

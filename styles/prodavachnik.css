@@ -21,7 +21,6 @@ body{
     display: none;
     text-decoration: none;
     padding: 5px 20px;
-    cursor: pointer;
 }
 
 .menu-item {
@@ -29,6 +28,7 @@ body{
     text-decoration: none;
     padding: 5px 20px;
     color: #fff;
+    cursor: pointer;
     font-size: 16px;
     max-width: 160px;
     position: relative;
@@ -36,7 +36,7 @@ body{
     transition: ease-in .3s;
 }
 
-.menu a:hover{
+.menu-item:hover{
     color: #00bbbb;
 }
 
@@ -87,6 +87,14 @@ input{
     transition: .5s ease-in;
 }
 
+#infoBox, #errorBox, #loadingBox {
+    width: 100%;
+    color: white;
+    text-align: center;
+    padding: 15px;
+    transition: .5s ease-in;
+}
+
 input[type=text]{
     color: white;
     font: 16px 'Open Sans', sans-serif;
@@ -107,6 +115,19 @@ input[type=button]:hover{
     border-color: #00bbbb;
     transform: scale(1.1);
     cursor: pointer;
+}
+
+#loadingBox {
+    background: #7CB3E9;
+    display: none;
+}
+#infoBox {
+    background: #393;
+    display: none;
+}
+#errorBox {
+    background: #F50;
+    display: none;
 }
 
 table{
@@ -144,20 +165,13 @@ footer {
 
 }
 
-#infoBox, #errorBox, #loadingBox {
-    width: 100%;
-    color: white;
-    text-align: center;
-    padding: 15px;
-    transition: .5s ease-in;
+.imgContent img {
+    max-width: 100%;
+    max-height: 100%;
 }
 
-#loadingBox {
-    background: #7CB3E9;
-}
-#infoBox {
-    background: #393;
-}
-#errorBox {
-    background: #F50;
+.imgContent {
+    max-width: 250px;
+    max-height: 350px;
+    overflow: auto;
 }
